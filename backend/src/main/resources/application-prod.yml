@@ -23,7 +23,9 @@ spring:
   # Aucun secret ne doit apparaitre dans ce fichier.
   # ----------------------------------------------------------
   datasource:
-    url: ${DB_URL}
+    # URL construite à partir des variables fournies par Render
+    # (ou URL JDBC complète via DB_URL si fournie).
+    url: ${DB_URL:jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=require}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
@@ -62,7 +64,8 @@ app:
 # Serveur
 # ----------------------------------------------------------
 server:
-  port: 8091
+  # Render impose la variable PORT en production ; 8091 par défaut en local.
+  port: ${PORT:8091}
 
 # ----------------------------------------------------------
 # Journalisation

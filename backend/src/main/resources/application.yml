@@ -67,4 +67,5 @@ app.analyse:
     cache-secondes: 1800
 
 server:
-  port: 8091
+  # Render impose la variable PORT en production ; 8091 par défaut en local.
+  port: ${PORT:8091}

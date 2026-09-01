@@ -1,0 +1,12 @@
+.git
+.idea
+.context
+docs
+README.md
+start.ps1
+frontend
+**/*.log
+backend/target
+backend/.git
+node_modules
+dist

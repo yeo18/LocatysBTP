@@ -61,6 +61,20 @@ mvn test
 
 50+ tests unitaires et d'intégration (JWT, RBAC, templates, analyse de site).
 
+## Déploiement (Render.com)
+
+Le fichier `render.yaml` (blueprint) déploie automatiquement **3 ressources** : une base PostgreSQL, l'API Spring Boot et le frontend SPA.
+
+1. **Pousser le code** sur GitHub puis aller sur https://dashboard.render.com
+2. **New** → **Blueprint** → connecter le repo `LocatysBTP` → **Apply**
+3. Render crée la base, le backend et le frontend (~5 min)
+4. **Après le premier déploiement**, deux variables à renseigner (menus **Environment** de chaque service) :
+   - Backend → `CORS_ALLOWED_ORIGINS` = URL du frontend (ex. `https://locatysbtp-frontend.onrender.com`)
+   - Frontend → `VITE_API_URL` = URL du backend (ex. `https://locatysbtp-backend.onrender.com`)
+5. Rebuild sur Render (bouton **Manual Deploy** → **Deploy branch**) puis ouvrir l'application.
+
+> `JWT_SECRET` est généré automatiquement par Render. Les identifiants DB sont reliés entre services.
+
 ## Documentation
 
 - Architecture : `docs/architecture.md`, `docs/architecture-backend-spring.md`
