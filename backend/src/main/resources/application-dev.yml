@@ -1,0 +1,93 @@
+# ============================================================
+# PROFIL : dev  (developpement local)
+# Connexion PostgreSQL locale (Docker, conteneur chantier-db).
+# ============================================================
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  # ----------------------------------------------------------
+  # Datasource - connexion PostgreSQL locale (Docker)
+  # Conteneur : chantier-db  |  Port hote : 5432
+  # Base      : gestion_de_chantier  |  User : admin
+  # ----------------------------------------------------------
+  datasource:
+    url: jdbc:postgresql://localhost:5432/gestion_de_chantier
+    username: ${DB_USERNAME:admin}
+    password: ${DB_PASSWORD:admin123}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      initialization-fail-timeout: 30000
+
+  # ----------------------------------------------------------
+  # JPA / Hibernate
+  # ddl-auto : none -> Hibernate ne cree ni ne modifie jamais
+  # les tables automatiquement. Les tables viendront de Flyway.
+  # Le dialect PostgreSQL est detecte automatiquement par Hibernate.
+  # ----------------------------------------------------------
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # ----------------------------------------------------------
+  # Flyway - systeme officiel de gestion des migrations
+  # Toute evolution de la structure passe par db/migration/Vx__nom.sql.
+  # Hibernate (ddl-auto: none) ne cree ni ne modifie jamais les tables.
+  # ----------------------------------------------------------
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    encoding: UTF-8
+    validate-on-migrate: true
+    baseline-on-migrate: false
+
+# ----------------------------------------------------------
+# Parametres applicatifs (dev uniquement)
+# ----------------------------------------------------------
+app:
+  security:
+    jwt:
+      # Secret de developpement (>= 256 bits pour HS256). En production,
+      # surcharge obligatoire via la variable d'environnement JWT_SECRET.
+      secret: ${JWT_SECRET:dev-secret-cms-2026-8f2e4d6b9c1a3e5f7d8b0c2a4e6f9a0b}
+
+# ----------------------------------------------------------
+# Serveur
+# ----------------------------------------------------------
+server:
+  port: 8091
+  servlet:
+    context-path: /
+
+# ----------------------------------------------------------
+# Journalisation
+# ----------------------------------------------------------
+logging:
+  level:
+    root: INFO
+    com.cms: DEBUG
+    org.hibernate.SQL: DEBUG
+
+# ----------------------------------------------------------
+# Documentation API (Springdoc OpenAPI)
+# ----------------------------------------------------------
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha            # tri alphabétique des tags
+    operations-sorter: method     # tri par méthode HTTP (GET, POST, PUT...)
+    display-request-duration: true
+    doc-expansion: none
+    disable-swagger-default-url: true
+  api-docs:
+    path: /v3/api-docs
+  default-produces-media-type: application/json

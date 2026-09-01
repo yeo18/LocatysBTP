@@ -1,0 +1,20 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Backend
+backend/target/
+*.class
+*.log
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/vite-dev.log
+frontend/vite-dev.log.err
+
+# Contexte IA / divers
+.context/
+.DS_Store

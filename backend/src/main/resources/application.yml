@@ -1,0 +1,70 @@
+# ============================================================
+# CMS - Configuration principale
+# Profils disponibles : dev, test, prod
+#   dev  : developpement local (defaut recommande)
+#   test : integration / tests
+#   prod : production
+#
+# Lancement :
+#   mvn spring-boot:run                          -> profil dev (defaut)
+#   mvn spring-boot:run -Dspring-boot.run.profiles=prod
+# ============================================================
+spring:
+  application:
+    name: cms-backend
+  # Profil actif par defaut. Surchargeable via SPRING_PROFILES_ACTIVE
+  # ou via l'option -Dspring.profiles.active=<profil> au lancement.
+  profiles:
+    active: dev
+
+# ----------------------------------------------------------
+# Parametres applicatifs centralises (voir ApplicationProperties)
+# Les secrets viennent toujours de variables d'environnement.
+# ----------------------------------------------------------
+app:
+  name: cms-backend
+  version: 0.1.0
+  mode: STANDALONE
+  api:
+    prefix: /api/v1
+  security:
+    jwt:
+      secret: ${JWT_SECRET:}
+      expiration-ms: 3600000
+  cors:
+    # Origines autorisees pour le frontend React (liste, separee par des virgules).
+    # localhost : acces depuis la meme machine. L'IP du reseau local est
+    # ajoutee pour l'acces depuis un autre appareil au meme Wi-Fi. Le code
+    # (CorsConfig) accepte EN PLUS toutes les IP privees du reseau local, donc
+    # un changement d'IP ne casse plus l'acces. En production : surcharger via
+    # CORS_ALLOWED_ORIGINS.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://192.168.10.104:3000}
+
+# ----------------------------------------------------------
+# Module « Analyse du site » (geocodage, meteo, environnement).
+# ----------------------------------------------------------
+app.analyse:
+  environnement:
+    rayon-metres: 1000
+  nominatim:
+    user-agent: "BatiFlowCMS/1.0 (gestion de chantiers BTP; contact: admin@batiflow.com)"
+    # Restreint la recherche à la Côte d'Ivoire (plus précis). Vide = tous pays.
+    country-codes: ci
+    limit: 8
+    # Cadre "minLon,minLat,maxLon,maxLat" — zone de proximité Abidjan (plus précis). Vide = aucune restriction.
+    viewbox: "-4.25,5.18,-3.55,5.55"
+    # true = résultats LIMITÉS à viewbox uniquement ; false = zone simplement privilégiée.
+    bounded: false
+  openweather:
+    # Clé API OpenWeather (plan gratuit). Variable d'environnement obligatoire.
+    # Ne jamais commiter ni exposer la clé.
+    api-key: ${OPENWEATHER_API_KEY:}
+    # Unité métrique (SI) : °C, m/s, hPa. Converti en km/h côté métier.
+    units: metric
+    # Langue des descriptions météo.
+    lang: fr
+    # Durée de vie du cache (secondes).
+    cache-secondes: 1800
+
+server:
+  port: 8091

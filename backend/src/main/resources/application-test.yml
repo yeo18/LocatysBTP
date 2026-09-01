@@ -1,0 +1,61 @@
+# ============================================================
+# PROFIL : test  (integration / tests)
+# Base de test dediee, independante de la base de developpement.
+# La base gestion_de_chantier_test doit exister (creee a la main
+# ou via Testcontainers dans les futurs tests d'integration).
+# ============================================================
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  # ----------------------------------------------------------
+  # Datasource - base de test (ne pas utiliser la base de dev)
+  # ----------------------------------------------------------
+  datasource:
+    url: jdbc:postgresql://localhost:5432/gestion_de_chantier_test
+    username: ${DB_USERNAME:admin}
+    password: ${DB_PASSWORD:admin123}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 10000
+
+  # ----------------------------------------------------------
+  # JPA / Hibernate - parametres de test
+  # ----------------------------------------------------------
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  # ----------------------------------------------------------
+  # Flyway
+  # ----------------------------------------------------------
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    encoding: UTF-8
+    validate-on-migrate: true
+    baseline-on-migrate: false
+
+# ----------------------------------------------------------
+# Parametres applicatifs (test uniquement)
+# ----------------------------------------------------------
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:test-secret-cms-2026-0123456789abcdefghijklmnopqrst}
+
+# ----------------------------------------------------------
+# Journalisation
+# ----------------------------------------------------------
+logging:
+  level:
+    root: WARN
+    com.cms: DEBUG

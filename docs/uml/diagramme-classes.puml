@@ -1,0 +1,411 @@
+@startuml
+' ============================================================
+' DIAGRAMME DE CLASSES — CMS (Chantier Management System)
+' Reverse engineering du projet réel :
+'   - Entités JPA (com.cms.*) : backend\src\main\java
+'   - Schéma PostgreSQL réel : migrations Flyway V1..V21
+'   - Couche service/controller (comportement métier)
+' ============================================================
+' Conventions (cours « INTRODUCTION À UML ») :
+'   - 3 compartiments : nom / attributs / opérations
+'   - - attribut privé, + opération publique
+'   - [1] attribut requis, [0..1] optionnel
+'   - Cardinalités sur les associations : 1, 0..1, 0..*
+'   - Losange plein = composition (cycle de vie lié, ON DELETE CASCADE)
+'   - Énumérations : classeur stéréotypé « enumeration »
+' ============================================================
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam classFontStyle bold
+skinparam classFontSize 13
+skinparam defaultTextAlignment left
+skinparam linetype ortho
+skinparam ArrowColor #404040
+skinparam PackageBorderColor #999999
+skinparam PackageFontStyle bold
+skinparam PackageFontSize 14
+
+title Diagramme de classes — CMS\n(Chantier Management System — BatiFlow)
+
+' ============================================================
+' 01 — RBAC : UTILISATEURS, PROFILS & PERMISSIONS
+' ============================================================
+package "01 · RBAC — Utilisateurs, Profils & Permissions" #F0F5FC {
+  class Utilisateur #EAF2FB {
+    - id : Long [1]
+    - nom : String [1]
+    - prenom : String [1]
+    - email : String [1] {unique}
+    - password : String [1]
+    - telephone : String [0..1]
+    - dateCreation : LocalDateTime [1]
+    - dateModification : LocalDateTime [1]
+    --
+    + seConnecter()
+    + changerMotDePasse()
+    + accorderPermission()
+    + refuserPermission()
+  }
+
+  class Profil #EAF2FB {
+    - id : Long [1]
+    - nom : String [1] {unique}
+    - description : String [0..1]
+    - dateCreation : LocalDateTime [1]
+    - dateModification : LocalDateTime [1]
+    --
+    + creer()
+    + modifier()
+    + supprimer()
+    + ajouterPermission()
+    + retirerPermission()
+  }
+
+  class Permission #EAF2FB {
+    - id : Long [1]
+    - nom : String [1]
+    - nomPermission : String [1] {unique}
+    - module : String [1]
+    - description : String [0..1]
+    --
+    + activer()
+    + desactiver()
+  }
+
+  class ProfilPermission #D6E4F7 {
+    - id : Long [1]
+  }
+
+  class UtilisateurPermission #D6E4F7 {
+    - id : Long [1]
+    - type : UtilisateurPermissionType [1]
+    - dateCreation : LocalDateTime [1]
+    - dateModification : LocalDateTime [1]
+  }
+
+  class UtilisateurPermissionChantier #D6E4F7 {
+    - id : Long [1]
+    - type : UtilisateurPermissionType [1]
+    - dateCreation : LocalDateTime [1]
+    - dateModification : LocalDateTime [1]
+    --
+    + accorder()
+    + refuser()
+    + retirer()
+  }
+}
+
+' ============================================================
+' 02 — ORGANISATION : CHANTIERS & ÉQUIPES
+' ============================================================
+package "02 · Organisation — Chantiers & Équipes" #F0FAF0 {
+  class Chantier #EAF6EA {
+    - id : Long [1]
+    - nom : String [1]
+    - description : String [0..1]
+    - adresseSaisie : String [0..1]
+    - latitude : BigDecimal [0..1]
+    - longitude : BigDecimal [0..1]
+    - adresseGeocodee : String [0..1]
+    - origineCoordonnees : OrigineCoordonnees [0..1]
+    - fiabiliteCoordonnees : FiabiliteCoordonnees [0..1]
+    - statut : ChantierStatut [1]
+    - dateDebut : LocalDate [0..1]
+    - dateFin : LocalDate [0..1]
+    - progression : int [1]
+    - dateCreation : LocalDateTime [1]
+    - dateModification : LocalDateTime [1]
+    --
+    + creer()
+    + modifier()
+    + annuler()
+    + confirmerLocalisation()
+  }
+
+  class Equipe #EAF6EA {
+    - id : Long [1]
+    - nom : String [1]
+    - description : String [0..1]
+    - dateCreation : LocalDateTime [1]
+    - dateModification : LocalDateTime [1]
+    --
+    + creer()
+    + modifier()
+  }
+
+  class MembreEquipe #D6E8D6 {
+    - id : Long [1]
+    - roleDansEquipe : RoleDansEquipe [1]
+    - dateIntegration : LocalDate [1]
+    --
+    + integrer()
+    + changerRole()
+    + retirer()
+  }
+
+  class AffectationEquipeChantier #D6E8D6 {
+    - id : Long [1]
+    - dateDebut : LocalDate [1]
+    - dateFin : LocalDate [0..1]
+    - statut : AffectationEquipeChantierStatut [1]
+    --
+    + affecter()
+    + terminer()
+  }
+
+  class AffectationUtilisateurChantier #D6E8D6 {
+    - id : Long [1]
+    - dateAffectation : LocalDateTime [1]
+    --
+    + affecter()
+    + retirer()
+  }
+}
+
+' ============================================================
+' 03 — TRAVAIL : TÂCHES & VALIDATIONS
+' ============================================================
+package "03 · Travail — Tâches & Validations" #FFF8E6 {
+  class Tache #FFF6DB {
+    - id : Long [1]
+    - titre : String [1]
+    - description : String [0..1]
+    - priorite : Priorite [1]
+    - status : TacheStatus [1]
+    - progression : int [1]
+    - dateDebut : LocalDate [0..1]
+    - dateFin : LocalDate [0..1]
+    - dateRealisation : LocalDate [0..1]
+    - dateCreation : LocalDateTime [1]
+    - dateModification : LocalDateTime [1]
+    --
+    + creer()
+    + modifier()
+    + supprimer()
+  }
+
+  class AffectationTacheUtilisateur #F6E7BD {
+    - id : Long [1]
+    - role : AffectationTacheRole [1]
+    - dateAffectation : LocalDate [1]
+    - dateCreation : LocalDateTime [1]
+    - dateModification : LocalDateTime [1]
+    --
+    + assigner()
+    + retirer()
+  }
+
+  class AffectationTacheEquipe #F6E7BD {
+    - id : Long [1]
+    - role : AffectationTacheRole [1]
+    - dateAffectation : LocalDate [1]
+    --
+    + assigner()
+    + retirer()
+  }
+
+  class ValidationTache #F6E7BD {
+    - id : Long [1]
+    - statut : ValidationTacheStatut [1]
+    - commentaire : String [0..1]
+    - dateValidation : LocalDate [1]
+    - dateModification : LocalDateTime [1]
+    --
+    + valider()
+    + refuser()
+  }
+}
+
+' ============================================================
+' 04 — TEMPLATES : MODÈLES DE CHANTIERS & DE TÂCHES
+' ============================================================
+package "04 · Templates — Modèles de chantiers & de tâches" #F5F0FC {
+  class TemplateChantier #F0E9FB {
+    - id : Long [1]
+    - nom : String [1] {unique}
+    - description : String [0..1]
+    - typeConstruction : TypeConstruction [1]
+    - dureeEstimeeJours : Integer [0..1]
+    - statut : TemplateChantierStatut [1]
+    - dateCreation : LocalDateTime [1]
+    - dateModification : LocalDateTime [1]
+    --
+    + creer()
+    + modifier()
+    + desactiver()
+    + associerTemplateTache()
+    + importerDansChantier()
+  }
+
+  class TemplateTache #F0E9FB {
+    - id : Long [1]
+    - titre : String [1]
+    - description : String [0..1]
+    - priorite : Priorite [1]
+    - dureeEstimeeJours : Integer [0..1]
+    - dateCreation : LocalDateTime [1]
+    - dateModification : LocalDateTime [1]
+    --
+    + creer()
+    + modifier()
+    + ajouterTache()
+    + importerDansChantier()
+  }
+
+  class TemplateChantierTache #D9CCF2 {
+    - id : Long [1]
+  }
+
+  class TemplateTacheTache #E6DBF7 {
+    - id : Long [1]
+    - titre : String [1]
+    - description : String [0..1]
+    - priorite : Priorite [1]
+    - dureeEstimeeJours : Integer [0..1]
+    - dateCreation : LocalDateTime [1]
+    - dateModification : LocalDateTime [1]
+  }
+}
+
+' ============================================================
+' ÉNUMÉRATIONS
+' ============================================================
+package "Énumérations" #FAFAFA {
+  enum UtilisateurPermissionType {
+    ACCORDER
+    REFUSER
+  }
+  enum ChantierStatut {
+    PREVU
+    EN_COURS
+    TERMINE
+    ANNULE
+  }
+  enum OrigineCoordonnees {
+    GEOCODAGE
+    CARTE
+  }
+  enum FiabiliteCoordonnees {
+    APPROXIMATIVE
+    PRECISE
+  }
+  enum RoleDansEquipe {
+    CHEF
+    OUVRIER
+  }
+  enum AffectationEquipeChantierStatut {
+    ACTIVE
+    TERMINEE
+  }
+  enum AffectationTacheRole {
+    REALISATEUR
+    CONTROLEUR
+  }
+  enum TacheStatus {
+    A_FAIRE
+    EN_COURS
+    VALIDE
+    REFUSE
+  }
+  enum Priorite {
+    HAUTE
+    MOYENNE
+    BASSE
+  }
+  enum ValidationTacheStatut {
+    VALIDE
+    REFUSE
+  }
+  enum TypeConstruction {
+    MAISON_R1
+    IMMEUBLE_R5
+    MAGASIN
+    VILLA
+    ENTREPOT
+  }
+  enum TemplateChantierStatut {
+    ACTIF
+    INACTIF
+  }
+}
+
+' ============================================================
+' ASSOCIATIONS — RBAC
+' ============================================================
+Utilisateur "0..*" -- "1" Profil : possède
+Profil "1" -- "0..*" ProfilPermission : porte
+Permission "1" -- "0..*" ProfilPermission : attribuée à
+Utilisateur "1" -- "0..*" UtilisateurPermission : reçoit
+Permission "1" -- "0..*" UtilisateurPermission : concerne
+Utilisateur "1" -- "0..*" UtilisateurPermission : aAutorisé
+Utilisateur "1" -- "0..*" UtilisateurPermissionChantier : reçoit
+Permission "1" -- "0..*" UtilisateurPermissionChantier : concerne
+Utilisateur "1" -- "0..*" UtilisateurPermissionChantier : aAutorisé
+Chantier "1" -- "0..*" UtilisateurPermissionChantier : périmètre
+
+' ============================================================
+' ASSOCIATIONS — ORGANISATION
+' ============================================================
+Utilisateur "1" -- "0..*" MembreEquipe : appartient
+Equipe "1" -- "0..*" MembreEquipe : composée de
+Equipe "1" -- "0..*" AffectationEquipeChantier : travaille sur
+Chantier "1" -- "0..*" AffectationEquipeChantier : reçoit
+Utilisateur "1" -- "0..*" AffectationUtilisateurChantier : affecté à
+Chantier "1" -- "0..*" AffectationUtilisateurChantier : autorise
+Utilisateur "0..1" -- "0..*" Chantier : responsable
+
+' ============================================================
+' ASSOCIATIONS — TRAVAIL
+' ============================================================
+Chantier "1" -- "0..*" Tache : contient
+Utilisateur "1" -- "0..*" Tache : aCréé
+Tache "1" -- "0..*" AffectationTacheUtilisateur : ciblée par
+Utilisateur "1" -- "0..*" AffectationTacheUtilisateur : exécute
+Tache "1" -- "0..*" AffectationTacheEquipe : ciblée par
+Equipe "1" -- "0..*" AffectationTacheEquipe : exécute
+Tache "1" -- "0..*" ValidationTache : subit
+Utilisateur "1" -- "0..*" ValidationTache : valide
+
+' ============================================================
+' ASSOCIATIONS — TEMPLATES
+' ============================================================
+TemplateChantier "1" *-- "0..*" TemplateChantierTache : référence
+TemplateTache "1" -- "0..*" TemplateChantierTache : réutilisé dans
+TemplateTache "1" *-- "0..*" TemplateTacheTache : structure
+Utilisateur "1" -- "0..*" TemplateChantier : aCréé
+Utilisateur "1" -- "0..*" TemplateTache : aCréé
+Utilisateur "1" -- "0..*" TemplateTacheTache : aCréé
+
+' ============================================================
+' LÉGENDE
+' ============================================================
+legend right
+  |= Notation UML (cours « INTRODUCTION À UML ») |= Sémantique |
+  | - attribut | attribut privé (encapsulation) |
+  | + opération | opération publique |
+  | [1] | attribut obligatoire (NOT NULL) |
+  | [0..1] | attribut optionnel |
+  | Losange plein (◆) | composition : cycle de vie lié, ON DELETE CASCADE |
+  | Trait simple | association simple |
+  | 1 / 0..1 / 0..* | cardinalités de l'association |
+  | « enumeration » | type énuméré (enum Java + CHECK SQL) |
+endlegend
+
+' Classes d'association (entités à clé propre portant des attributs) :
+' ProfilPermission, UtilisateurPermission, UtilisateurPermissionChantier,
+' MembreEquipe, AffectationEquipeChantier, AffectationUtilisateurChantier,
+' AffectationTacheUtilisateur, AffectationTacheEquipe, TemplateChantierTache.
+
+note top of Utilisateur
+  Table : **utilisateur**
+  Profil obligatoire (profil_id NOT NULL).
+end note
+
+note top of Chantier
+  Table : **chantier**
+  Responsable optionnel (0..1).
+end note
+
+@enduml
