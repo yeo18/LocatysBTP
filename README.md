@@ -1,42 +1,33 @@
 # LocatysBTP
 
-Application de gestion de chantiers BTP : suivi des chantiers, des équipes, des tâches et des utilisateurs, avec authentification (JWT) et gestion fine des droits (RBAC).
+Application de gestion de chantiers BTP (backend **Spring Boot 3** + frontend **React/Vite** + base **PostgreSQL**).
 
-- **Backend** : API REST **Spring Boot 3** (Java 25, Maven, PostgreSQL, Flyway pour les migrations, JWT pour la sécurité)
-- **Frontend** : application web **React** (TypeScript, Vite, Tailwind CSS)
-
-Ce guide vous accompagne de **A à Z** : de l'installation des outils jusqu'au lancement complet de l'application, sur Linux/macOS (bash) comme sur Windows (PowerShell).
-
----
-
-## Sommaire
-
-1. [Prérequis](#1-prerequis)
-2. [Cloner le projet](#2-cloner-le-projet)
-3. [Configuration](#3-configuration)
-4. [Démarrer la base de données](#4-demarrer-la-base-de-donnees)
-5. [Installer et lancer le backend](#5-installer-et-lancer-le-backend)
-6. [Installer et lancer le frontend](#6-installer-et-lancer-le-frontend)
-7. [Vérifier que tout fonctionne](#7-verifier-que-tout-fonctionne)
-8. [Arrêter l'application](#8-arreter-lapplication)
-9. [Dépannage](#9-depannage)
+Ce guide explique comment **cloner, installer, configurer et lancer** l'application sur un nouveau PC.
 
 ---
 
 ## 1. Prérequis
 
-Installez les outils suivants avant de continuer, avec au minimum ces versions :
+| Outil | Version minimale |
+|-------|------------------|
+| Git | récente |
+| Node.js + npm | **20.19** (version **22 LTS** recommandée) |
+| Java (JDK) | **25** |
+| Maven | **3.9** |
+| Docker (avec Docker Compose) | récente (pour la base de données) |
 
-| Outil | Version requise | Vérifier avec |
-|-------|-----------------|---------------|
-| Git | n'importe quelle récente | `git --version` |
-| Java (JDK) | **25** | `java -version` |
-| Maven | **3.9+** | `mvn -version` |
-| Node.js | **20+** | `node --version` |
-| npm | inclus avec Node.js | `npm --version` |
-| Docker | n'importe quelle récente | `docker --version` |
+Vérifiez vos installations :
 
-> La version de Java est importante : le projet compile avec Java 25. Si plusieurs versions de Java sont installées, assurez-vous que `java -version` affiche bien la version 25.
+```bash
+git --version
+node --version
+java -version
+mvn -version
+docker --version
+docker compose version
+```
+
+> Le backend **ne compile que sur Java 25** : vérifiez que `java -version` affiche bien la version 25.
 
 ---
 
@@ -47,192 +38,205 @@ git clone https://github.com/yeo18/LocatysBTP.git
 cd LocatysBTP
 ```
 
-Vous devez obtenir cette structure :
+Placez-vous à la **racine du projet**. Le dépôt contient :
 
 ```
-LocatysBTP/
-├── backend/        # API Spring Boot
-├── frontend/       # application web React
-├── docker/         # base de données PostgreSQL (Docker Compose)
-├── README.md
-└── start.ps1       # script de lancement rapide (Windows)
+backend/    # API Spring Boot
+frontend/   # application web React (Vite)
+docker/     # PostgreSQL + pgAdmin (Docker Compose)
+start.ps1   # script de lancement rapide (Windows uniquement)
 ```
 
 ---
 
-## 3. Configuration
+## 3. Frontend
 
-Aucune configuration n'est obligatoire pour démarrer en local : le backend embarque des **valeurs par défaut de développement** (base `admin`/`admin123`, secret JWT de dev) qui correspondent à la base Docker Compose. Vous ne devez donc **rien créer** pour lancer l'application.
-
-Pour personnaliser, ces **variables d'environnement** (définies dans votre terminal ou dans l'IDE) sont prises en compte :
-
-| Variable | Rôle | Valeur par défaut |
-|----------|------|-------------------|
-| `DB_USERNAME` | Utilisateur PostgreSQL | `admin` |
-| `DB_PASSWORD` | Mot de passe PostgreSQL | `admin123` |
-| `JWT_SECRET` | Clé de signature des tokens JWT | secret de dev (déjà présent, **à changer en production**) |
-| `CORS_ALLOWED_ORIGINS` | Origines autorisées pour le frontend | `http://localhost:3000,http://localhost:5173` |
-| `OPENWEATHER_API_KEY` | Clé API OpenWeather (module météo) | vide = météo désactivée, **optionnel** |
-
-### 3.1 Exemple de définition sur Linux/macOS
+### 3.1 Entrer dans le dossier frontend
 
 ```bash
-export DB_USERNAME=admin
-export DB_PASSWORD=admin123
+cd frontend
 ```
 
-### 3.2 Exemple sur Windows (PowerShell)
+### 3.2 Installer les dépendances
 
-```powershell
-$env:DB_USERNAME = "admin"
-$env:DB_PASSWORD = "admin123"
+Le projet utilise **npm** :
+
+```bash
+npm install
 ```
 
-> **Optionnel — `frontend/.env`** : le frontend fonctionne sans aucun fichier `.env` (l'URL `http://localhost:8091` est la valeur par défaut). Si vous devez la changer, créez `frontend/.env` à côté de `package.json` :
->
-> ```
-> VITE_API_URL=http://localhost:8091
-> ```
->
-> `VITE_API_URL` est l'adresse du backend vue par le navigateur. Les fichiers `.env` sont ignorés par Git et ne seront jamais poussés.
+### 3.3 Configuration du frontend
+
+**Aucun fichier de configuration n'est obligatoire.** Par défaut, le frontend appelle le backend sur `http://localhost:8091` (voir `frontend/src/core/api/axios.ts`).
+
+Si votre backend n'est pas sur ce port, créez le fichier `frontend/.env` :
+
+```bash
+VITE_API_URL=http://localhost:8091
+```
+
+`VITE_API_URL` = adresse du backend vue par le navigateur. Adaptez-la si besoin, puis **relancez** `npm run dev` (ce fichier est lu au démarrage).
+
+### 3.4 Lancer le frontend
+
+```bash
+npm run dev
+```
+
+### 3.5 Accéder au frontend
+
+```text
+http://localhost:3000
+```
 
 ---
 
-## 4. Démarrer la base de données
+## 4. Base de données
 
-La base PostgreSQL est fournie via Docker Compose (fichier `docker/docker-compose.yml`).
+Le projet utilise **PostgreSQL 16** fourni par Docker Compose (`docker/docker-compose.yml`).
+
+### Démarrer la base
 
 ```bash
 cd docker
 docker compose up -d
 ```
 
-Cela démarre deux conteneurs :
+Cette commande crée et démarre automatiquement :
 
-- **PostgreSQL** → port `5432`
-  - base : `gestion_de_chantier`
+- **PostgreSQL** sur le port `5432`
+  - base : `gestion_de_chantier` (créée automatiquement au premier démarrage)
   - utilisateur : `admin`
   - mot de passe : `admin123`
-- **pgAdmin** (interface de gestion) → `http://localhost:5050`
-  - email : `admin@admin.com`
-  - mot de passe : `admin`
+- **pgAdmin** sur `http://localhost:5050` (email `admin@admin.com`, mot de passe `admin`)
 
-Vérifiez que la base est prête :
+Vérification :
 
 ```bash
 docker compose ps
 ```
 
-Les deux conteneurs doivent être `Up`. La base `gestion_de_chantier` sera utilisée automatiquement par le backend.
+Les deux conteneurs doivent être `Up`.
 
-> **Alternative sans Docker** : si vous avez déjà PostgreSQL installé, créez simplement une base vide nommée `gestion_de_chantier` avec un utilisateur `admin` / mot de passe `admin123` (ou adaptez les variables `DB_USERNAME` / `DB_PASSWORD` de l'étape 3).
+### Migrations
+
+Aucune action manuelle : le backend applique **automatiquement** les migrations **Flyway** (`backend/src/main/resources/db/migration/V1__init.sql` → `V22...`) au premier démarrage. Les tables sont créées seules.
 
 ---
 
-## 5. Installer et lancer le backend
+## 5. Backend
 
-### 5.1 Installer les dépendances et compiler
+### 5.1 Entrer dans le dossier backend
 
 ```bash
 cd backend
+```
+
+### 5.2 Configuration du backend
+
+Le profil par défaut est **`dev`** (défini dans `backend/src/main/resources/application.yml` via `spring.profiles.active: dev`). Il embarque des valeurs par défaut qui correspondent à la base Docker :
+
+- Base : `jdbc:postgresql://localhost:5432/gestion_de_chantier`
+- Utilisateur : `admin` / mot de passe : `admin123`
+- Secret JWT : secret de développement déjà présent
+
+**Aucune variable d'environnement n'est donc obligatoire pour lancer en local.**
+
+Variables optionnelles (définies dans le terminal ou l'IDE) si vous voulez changer un réglage :
+
+| Variable | Rôle | Valeur par défaut |
+|----------|------|-------------------|
+| `DB_USERNAME` | Utilisateur PostgreSQL | `admin` |
+| `DB_PASSWORD` | Mot de passe PostgreSQL | `admin123` |
+| `JWT_SECRET` | Clé de signature des tokens JWT (≥ 32 caractères) | secret de dev |
+| `CORS_ALLOWED_ORIGINS` | Origines autorisées (séparées par des virgules) | `http://localhost:3000,http://localhost:5173,...` |
+| `OPENWEATHER_API_KEY` | Clé OpenWeather (module météo, optionnel) | vide = météo désactivée |
+
+Exemple (PowerShell / Windows) :
+
+```powershell
+$env:DB_PASSWORD = "admin123"
+```
+
+Autres profils disponibles : `test` et `prod`, à activer via `SPRING_PROFILES_ACTIVE` (ex. `$env:SPRING_PROFILES_ACTIVE = "test"`).
+
+### 5.3 Installer / préparer le backend
+
+Le projet n'a **pas de Maven Wrapper** : utilisez Maven installé sur la machine. La première compilation télécharge les dépendances :
+
+```bash
 mvn clean package -DskipTests
 ```
 
-En cas de succès, vous verrez `BUILD SUCCESS` (et le fichier `target/cms-backend-0.1.0.jar` sera créé).
+Terminez avec le message `BUILD SUCCESS`.
 
-### 5.2 Lancement (développement)
+### 5.4 Lancer le backend
 
 ```bash
 mvn spring-boot:run
 ```
 
-Attendez le message de démarrage (`Started CmsApplication`). Le backend écoute alors sur **http://localhost:8091**.
+Attendez dans les logs le message `Started CmsApplication` (premières secondes du démarrage, après compilation).
 
-Au premier démarrage, les **migrations Flyway** s'exécutent automatiquement : les tables sont créées dans la base `gestion_de_chantier`, il n'y a rien d'autre à faire.
+- **Port du backend** : `8091`
+- **URL de base de l'API** : `http://localhost:8091/api/v1`
+- **Documentation Swagger** : `http://localhost:8091/swagger-ui.html`
 
-> Le backend utilise ses valeurs par défaut de développement (base `admin`/`admin123`, aucun secret réel). Les variables d'environnement définies à l'étape 3 sont prises en compte si elles existent.
+### 5.5 Vérifier que le backend fonctionne
+
+- Ouvrez `http://localhost:8091/swagger-ui.html` : la liste des endpoints de l'API doit s'afficher.
+- Les logs doivent contenir `Started CmsApplication` sans erreur, et les migrations Flyway appliquées.
+- En cas de problème, la cause la plus fréquente est la base non démarrée (voir § 7).
 
 ---
 
-## 6. Installer et lancer le frontend
+## 6. Démarrage complet
 
-Ouvrez un **deuxième terminal**.
+Ordre à respecter : **base de données → backend → frontend**.
 
-### 6.1 Installer les dépendances
+### Terminal 1 — Base de données
 
 ```bash
-cd frontend
-npm install
+cd docker
+docker compose up -d
 ```
 
-### 6.2 Lancement
-
-```bash
-npm run dev
-```
-
-Le frontend démarre sur **http://localhost:3000**.
-
----
-
-## 7. Vérifier que tout fonctionne
-
-1. **Frontend** : ouvrez `http://localhost:3000` dans le navigateur.
-2. **Créer un compte** : cliquer sur le lien d'inscription, saisir email + mot de passe, valider.
-3. **Se connecter** : vous arrivez sur le tableau de bord.
-4. **API en direct** : ouvrez `http://localhost:8091/swagger-ui.html` pour la documentation Swagger de l'API (elle liste tous les endpoints et leur format).
-5. **Base de données** : ouvrez `http://localhost:5050` (pgAdmin) et connectez-vous avec `admin@admin.com` / `admin` pour voir les tables créées dans `gestion_de_chantier`.
-
-Si le tableau de bord s'affiche après connexion : **l'application fonctionne de bout en bout** (frontend → API → base de données).
-
----
-
-## 8. Arrêter l'application
-
-- **Frontend** : `Ctrl+C` dans son terminal.
-- **Backend** : `Ctrl+C` dans son terminal.
-- **Base de données** : dans le dossier `docker` :
-
-  ```bash
-  docker compose down
-  ```
-
-Relancer plus tard : refaire simplement les étapes [4](#4-demarrer-la-base-de-donnees), [5.2](#52-lancement-developpement) et [6.2](#62-lancement) (la base de données conserve les données entre deux arrêts).
-
----
-
-## 9. Dépannage
-
-| Problème | Solution |
-|----------|----------|
-| `BUILD FAILURE` au build Maven | Vérifiez `java -version` (doit afficher la version 25) puis `mvn clean` avant de refaire `package` |
-| Le backend ne démarre pas / erreur de connexion à la base | Vérifiez que Docker tourne et que `docker compose ps` affiche PostgreSQL `Up`, puis que `backend/.env` contient bien `admin` / `admin123` |
-| `Error creating bean ... DataSource` | La base `gestion_de_chantier` n'existe pas : `docker compose up -d` la crée automatiquement ; sinon créez-la à la main |
-| Le frontend affiche des erreurs réseau à la connexion | Vérifiez que le backend tourne sur `http://localhost:8091` et que `frontend/.env` (si créé) contient `VITE_API_URL=http://localhost:8091` |
-| Migration Flyway en erreur | Supprimez les données de la base (`docker compose down` puis relancez `up -d`) ou consultez pgAdmin |
-| Port déjà occupé | Par défaut : backend sur `8091`, frontend sur `3000` — arrêtez le programme qui occupe le port |
-
-### Raccourci Windows
-
-Sur Windows, le script **`start.ps1`** à la racine lance automatiquement Docker, la base et le backend :
-
-```powershell
-.\start.ps1
-```
-
----
-
-## Tests
-
-Les tests du backend s'exécutent avec :
+### Terminal 2 — Backend
 
 ```bash
 cd backend
-mvn test
+mvn spring-boot:run
 ```
 
-> Note : certains tests de l'API réelle utilisent Docker (Testcontainers) ; Docker doit donc être démarré.
+### Terminal 3 — Frontend
+
+```bash
+cd frontend
+npm run dev
+```
+
+Résultat :
+
+```text
+Frontend : http://localhost:3000
+Backend  : http://localhost:8091   (API : http://localhost:8091/api/v1)
+Swagger  : http://localhost:8091/swagger-ui.html
+pgAdmin  : http://localhost:5050
+```
+
+Ouvrez `http://localhost:3000`, créez un compte puis connectez-vous : le tableau de bord doit s'afficher.
 
 ---
 
-> LocatysBTP — projet de gestion de chantiers. Ne déboguez jamais de secrets (`.env`, clés API, mots de passe) : ils doivent rester locaux, jamais commités.
+## 7. Problèmes courants
+
+| Problème | Cause probable | Solution |
+|----------|----------------|----------|
+| `BUILD FAILURE` au build Maven | Mauvaise version de Java | Vérifier `java -version` → Java 25 |
+| Le backend ne démarre pas / erreur de connexion à la base | PostgreSQL n'est pas lancé | `cd docker && docker compose up -d`, puis relancer le backend |
+| `Failed to create bean ... DataSource` | La base `gestion_de_chantier` n'existe pas | `docker compose down && docker compose up -d` |
+| Le frontend affiche des erreurs réseau | Le backend n'est pas lancé, ou mauvaise URL | Lancer le backend ; ou créer `frontend/.env` avec `VITE_API_URL` adapté, puis relancer `npm run dev` |
+| `Port 3000 already in use` / `8091` déjà occupé | Un autre programme utilise le port | Fermer le programme concerné, ou changer de port |
+| `npm ERR!` à l'installation | Version de Node trop ancienne | Installer Node 20.19+ ou 22 LTS, puis `npm install` |
+
+> Sur Windows (PowerShell), le script `start.ps1` à la racine démarre automatiquement Docker puis le backend ; lancez ensuite le frontend à la main (`cd frontend ; npm run dev`).
