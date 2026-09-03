@@ -62,45 +62,39 @@ LocatysBTP/
 
 ## 3. Configuration
 
-Le projet ne contient **aucun fichier de secret** : chaque personne crée ses propres fichiers `.env`. Ces fichiers sont ignorés par Git (aucune donnée personnelle ne sera publiée).
+Aucune configuration n'est obligatoire pour démarrer en local : le backend embarque des **valeurs par défaut de développement** (base `admin`/`admin123`, secret JWT de dev) qui correspondent à la base Docker Compose. Vous ne devez donc **rien créer** pour lancer l'application.
 
-### 3.1 Créer `backend/.env`
+Pour personnaliser, ces **variables d'environnement** (définies dans votre terminal ou dans l'IDE) sont prises en compte :
 
-Créez le fichier `backend/.env` (à côté de `pom.xml`) :
+| Variable | Rôle | Valeur par défaut |
+|----------|------|-------------------|
+| `DB_USERNAME` | Utilisateur PostgreSQL | `admin` |
+| `DB_PASSWORD` | Mot de passe PostgreSQL | `admin123` |
+| `JWT_SECRET` | Clé de signature des tokens JWT | secret de dev (déjà présent, **à changer en production**) |
+| `CORS_ALLOWED_ORIGINS` | Origines autorisées pour le frontend | `http://localhost:3000,http://localhost:5173` |
+| `OPENWEATHER_API_KEY` | Clé API OpenWeather (module météo) | vide = météo désactivée, **optionnel** |
 
-```
-DB_USERNAME=admin
-DB_PASSWORD=admin123
-JWT_SECRET=dev-secret-cms-2026-8f2e4d6b9c1a3e5f7d8b0c2a4e6f9a0b
-OPENWEATHER_API_KEY=
-```
-
-Explication des variables :
-
-| Variable | Rôle | Valeur locale conseillée |
-|----------|------|-------------------------|
-| `DB_USERNAME` | Utilisateur PostgreSQL | `admin` (comme Docker Compose) |
-| `DB_PASSWORD` | Mot de passe PostgreSQL | `admin123` (comme Docker Compose) |
-| `JWT_SECRET` | Clé de signature des tokens | une chaîne de **32 caractères minimum** ; changez-la si vous voulez |
-| `OPENWEATHER_API_KEY` | Clé API OpenWeather (module météo) | vide = fonctionnalité météo désactivée, **optionnel** |
-
-### 3.2 Créer `frontend/.env`
-
-Créez le fichier `frontend/.env` (à côté de `package.json`) :
-
-```
-VITE_API_URL=http://localhost:8091
-```
-
-`VITE_API_URL` est l'adresse du backend vue par le navigateur.
-
-### 3.3 Vérifier que les secrets sont bien ignorés
+### 3.1 Exemple de définition sur Linux/macOS
 
 ```bash
-git check-ignore backend/.env frontend/.env
+export DB_USERNAME=admin
+export DB_PASSWORD=admin123
 ```
 
-Si les deux fichiers sont listés sans message d'erreur, c'est parfait : ils ne seront jamais poussés sur Git.
+### 3.2 Exemple sur Windows (PowerShell)
+
+```powershell
+$env:DB_USERNAME = "admin"
+$env:DB_PASSWORD = "admin123"
+```
+
+> **Optionnel — `frontend/.env`** : le frontend fonctionne sans aucun fichier `.env` (l'URL `http://localhost:8091` est la valeur par défaut). Si vous devez la changer, créez `frontend/.env` à côté de `package.json` :
+>
+> ```
+> VITE_API_URL=http://localhost:8091
+> ```
+>
+> `VITE_API_URL` est l'adresse du backend vue par le navigateur. Les fichiers `.env` sont ignorés par Git et ne seront jamais poussés.
 
 ---
 
@@ -131,7 +125,7 @@ docker compose ps
 
 Les deux conteneurs doivent être `Up`. La base `gestion_de_chantier` sera utilisée automatiquement par le backend.
 
-> **Alternative sans Docker** : si vous avez déjà PostgreSQL installé, créez simplement une base vide nommée `gestion_de_chantier` avec un utilisateur `admin` / mot de passe `admin123`, puis adaptez `backend/.env` si nécessaire.
+> **Alternative sans Docker** : si vous avez déjà PostgreSQL installé, créez simplement une base vide nommée `gestion_de_chantier` avec un utilisateur `admin` / mot de passe `admin123` (ou adaptez les variables `DB_USERNAME` / `DB_PASSWORD` de l'étape 3).
 
 ---
 
@@ -156,7 +150,7 @@ Attendez le message de démarrage (`Started CmsApplication`). Le backend écoute
 
 Au premier démarrage, les **migrations Flyway** s'exécutent automatiquement : les tables sont créées dans la base `gestion_de_chantier`, il n'y a rien d'autre à faire.
 
-> Le backend lit automatiquement le fichier `backend/.env` créé à l'étape 3.1.
+> Le backend utilise ses valeurs par défaut de développement (base `admin`/`admin123`, aucun secret réel). Les variables d'environnement définies à l'étape 3 sont prises en compte si elles existent.
 
 ---
 
@@ -214,7 +208,7 @@ Relancer plus tard : refaire simplement les étapes [4](#4-demarrer-la-base-de-d
 | `BUILD FAILURE` au build Maven | Vérifiez `java -version` (doit afficher la version 25) puis `mvn clean` avant de refaire `package` |
 | Le backend ne démarre pas / erreur de connexion à la base | Vérifiez que Docker tourne et que `docker compose ps` affiche PostgreSQL `Up`, puis que `backend/.env` contient bien `admin` / `admin123` |
 | `Error creating bean ... DataSource` | La base `gestion_de_chantier` n'existe pas : `docker compose up -d` la crée automatiquement ; sinon créez-la à la main |
-| Le frontend affiche des erreurs réseau à la connexion | Vérifiez que `frontend/.env` contient `VITE_API_URL=http://localhost:8091` **et** que le backend tourne |
+| Le frontend affiche des erreurs réseau à la connexion | Vérifiez que le backend tourne sur `http://localhost:8091` et que `frontend/.env` (si créé) contient `VITE_API_URL=http://localhost:8091` |
 | Migration Flyway en erreur | Supprimez les données de la base (`docker compose down` puis relancez `up -d`) ou consultez pgAdmin |
 | Port déjà occupé | Par défaut : backend sur `8091`, frontend sur `3000` — arrêtez le programme qui occupe le port |
 
