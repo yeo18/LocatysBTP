@@ -1,84 +1,158 @@
-# LocatysBTP — Gestion de Chantiers
+# LocatysBTP
 
-Système complet de gestion de chantiers : utilisateurs, équipes, tâches, RBAC dynamique et analyse de site (météo, géolocalisation).
+Application de gestion de chantiers BTP :
+- **Backend** : API REST Spring Boot 3 (Java 25, Maven, PostgreSQL, Flyway, JWT)
+- **Frontend** : application web React (TypeScript, Vite, Tailwind CSS)
 
-## Stack
+---
 
-- **Backend** : Java 25, Spring Boot 3, Maven, PostgreSQL, Flyway, JWT, Swagger
-- **Frontend** : React 19, TypeScript, Vite 7, Tailwind 4, Redux, Recharts, Leaflet
+## Prérequis
 
-## Structure
+| Outil | Version |
+|-------|---------|
+| Git | n'importe quelle récente |
+| Java | 25 (JDK) |
+| Maven | 3.9+ |
+| Node.js | 20+ (avec npm) |
+| Docker | n'importe quelle récente (pour la base de données) |
 
+Les exemples de commandes ci-dessous sont pour Windows (PowerShell) et Linux/macOS (bash).
+
+---
+
+## Cloner le projet
+
+```bash
+git clone https://github.com/yeo18/LocatysBTP.git
+cd LocatysBTP
 ```
-backend/   → API REST Spring Boot (modules auth, chantier, equipe, tache, template, rbac...)
-frontend/  → SPA React + Vite
-docker/    → Infrastructure (PostgreSQL, pgAdmin)
-docs/      → Conception, architecture, UML (dossier de référence pour le suivi de stage)
+
+---
+
+## Configuration
+
+### 1) Base de données (PostgreSQL)
+
+Une base PostgreSQL est requise. Deux options :
+
+**Option A — Docker (recommandé)** : crée PostgreSQL + pgAdmin :
+
+```bash
+cd docker
+docker compose up -d
 ```
 
-## Démarrage rapide
+Cela crée :
+- PostgreSQL sur le port `5432`
+  - base : `gestion_de_chantier`
+  - utilisateur : `admin`
+  - mot de passe : `admin123`
+- pgAdmin sur `http://localhost:5050` (`admin@admin.com` / `admin`)
 
-1. **Infrastructure** : démarre Docker Desktop puis les bases (PostgreSQL, pgAdmin)
+**Option B — PostgreSQL déjà installé** : crée une base vide nommée `gestion_de_chantier`.
 
-   ```powershell
-   .\start.ps1
-   ```
+### 2) Backend
 
-   ou manuellement :
+Créer le fichier `backend/.env` (à partir de l'exemple fourni) :
 
-   ```powershell
-   cd docker
-   docker compose up -d
-   ```
+```bash
+# Ajuster si votre base n'est pas celle de Docker
+DB_USERNAME=admin
+DB_PASSWORD=admin123
 
-2. **Backend** : API sur http://localhost:8091
+# Secret de signature JWT (>= 32 caractères, à changer !)
+JWT_SECRET=dev-secret-cms-2026-8f2e4d6b9c1a3e5f7d8b0c2a4e6f9a0b
 
-   ```powershell
-   cd backend
-   mvn spring-boot:run
-   ```
+# Optionnel : clé API OpenWeather pour le module d'analyse météo
+OPENWEATHER_API_KEY=
+```
 
-3. **Frontend** : SPA sur http://localhost:3000
+### 3) Frontend
 
-   ```powershell
-   cd frontend
-   npm install
-   npm run dev
-   ```
+Créer le fichier `frontend/.env` :
 
-## Base de données
+```bash
+VITE_API_URL=http://localhost:8091
+```
 
-- Migrations Flyway : `backend/src/main/resources/db/migration/` (V1 → V22)
-- pgAdmin : http://localhost:5050 (`admin@admin.com` / `admin`)
-- Base : `gestion_de_chantier` (port 5432, `admin` / `admin123`)
+### 4) Vérifier qu'aucun secret n'est versionné
 
-## Tests
+```bash
+git check-ignore backend/.env frontend/.env && echo "OK : .env bien ignorés"
+```
 
-```powershell
+---
+
+## Installation
+
+### Backend (dépendances Maven)
+
+```bash
 cd backend
-mvn test
+mvn clean package -DskipTests
 ```
 
-50+ tests unitaires et d'intégration (JWT, RBAC, templates, analyse de site).
+### Frontend (dépendances npm)
 
-## Déploiement (Render.com)
+```bash
+cd frontend
+npm install
+```
 
-Le fichier `render.yaml` (blueprint) déploie automatiquement **3 ressources** : une base PostgreSQL, l'API Spring Boot et le frontend SPA.
+---
 
-1. **Pousser le code** sur GitHub puis aller sur https://dashboard.render.com
-2. **New** → **Blueprint** → connecter le repo `LocatysBTP` → **Apply**
-3. Render crée la base, le backend et le frontend (~5 min)
-4. **Après le premier déploiement**, deux variables à renseigner (menus **Environment** de chaque service) :
-   - Backend → `CORS_ALLOWED_ORIGINS` = URL du frontend (ex. `https://locatysbtp-frontend.onrender.com`)
-   - Frontend → `VITE_API_URL` = URL du backend (ex. `https://locatysbtp-backend.onrender.com`)
-5. Rebuild sur Render (bouton **Manual Deploy** → **Deploy branch**) puis ouvrir l'application.
+## Lancement
 
-> `JWT_SECRET` est généré automatiquement par Render. Les identifiants DB sont reliés entre services.
+### 1) Base de données
 
-## Documentation
+```bash
+cd docker
+docker compose up -d
+```
 
-- Architecture : `docs/architecture.md`, `docs/architecture-backend-spring.md`
-- API REST : `docs/controllers-rest-api.md`, `docs/swagger-documentation.md`
-- Base de données : `docs/MLD-relationnel.md`, `docs/database-design.md`
-- Sécurité : `docs/security-jwt.md`, `docs/rbac-dynamique.md`
-- Frontend : `docs/frontend-structure.md`
+### 2) Backend
+
+```bash
+cd backend
+mvn spring-boot:run
+```
+
+Le backend démarre sur `http://localhost:8091`. Les migrations de base de données (Flyway) s'appliquent automatiquement au premier démarrage.
+
+### 3) Frontend
+
+```bash
+cd frontend
+npm run dev
+```
+
+Le frontend démarre sur `http://localhost:3000`.
+
+> Astuce : sur Windows, le script `start.ps1` à la racine lance Docker et le backend automatiquement.
+
+---
+
+## Vérification
+
+1. **API** : ouvrir `http://localhost:8091/api/v1/auth/login` ou `http://localhost:8091/swagger-ui.html` (documentation Swagger).
+2. **Application** : ouvrir `http://localhost:3000`, créer un compte, se connecter.
+3. **Tests backend** : `cd backend && mvn test`.
+
+---
+
+## Arrêt
+
+```bash
+cd docker
+docker compose down
+```
+
+Arrêter le backend : `Ctrl+C` dans son terminal. Arrêter le frontend : `Ctrl+C` dans son terminal.
+
+---
+
+## Déploiement
+
+Le fichier `render.yaml` permet de déployer le projet sur [Render.com](https://render.com) (base PostgreSQL sur **Neon** ou Render, backend en Docker, frontend en site statique). Voir les variables attendues dans `render.yaml`.
+
+> LocatysBTP est une application d'étudiant en stage. Il ne faut jamais committer de secrets réels (`.env`, clés API, mots de passe).

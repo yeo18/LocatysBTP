@@ -1,15 +1,10 @@
 # ============================================================
-# LocatysBTP - Blueprint Render (Infrastructure as Code)
-# Déploie 3 ressources : base PostgreSQL, backend API, frontend SPA
+# LocatysBTP - Blueprint Render
+# Déploie 2 ressources : API backend (Docker) + frontend SPA.
+# La base de données est hébergée sur Neon (postgresql.autos / neon.tech).
 #
 # Connexion : Render Dashboard -> New -> Blueprint -> sélectionner le repo
 # ============================================================
-
-databases:
-  - name: locatysbtp-db
-    plan: free
-    databaseName: locatysbtp
-    user: locatysbtp
 
 services:
   # ------------------- API BACKEND (Spring Boot, Docker) -------------------
@@ -22,31 +17,22 @@ services:
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
-      # Ne jamais committer un secret en dur : généré automatiquement par Render
+      # Secret JWT : à remplacer par une valeur longue et aléatoire
       - key: JWT_SECRET
-        generateValue: true
-      # Connexion base de données : liée automatiquement à locatysbtp-db
-      - key: DB_HOST
-        fromDatabase:
-          name: locatysbtp-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: locatysbtp-db
-          property: port
-      - key: DB_NAME
-        fromDatabase:
-          name: locatysbtp-db
-          property: database
+        sync: false
+      # Base PostgreSQL (Neon) : URL JDBC de la base Neon (ex. Neon console ->
+      # Connection Details -> JDBC). Doit ressembler à :
+      #   jdbc:postgresql://ep-xxxx-xxxx.aws-region.neon.tech/locatysbtp?sslmode=require
+      - key: DB_URL
+        sync: false
       - key: DB_USERNAME
-        fromDatabase:
-          name: locatysbtp-db
-          property: user
+        sync: false
       - key: DB_PASSWORD
-        fromDatabase:
-          name: locatysbtp-db
-          property: password
-      # À renseigner MANUELLEMENT après création du frontend (voir README)
+        sync: false
+      # Optionnel : clé API OpenWeather pour le module d'analyse météo
+      - key: OPENWEATHER_API_KEY
+        sync: false
+      # Origine autorisée : URL du frontend (ex. https://locatysbtp-frontend.onrender.com)
       - key: CORS_ALLOWED_ORIGINS
         sync: false
 
@@ -60,6 +46,6 @@ services:
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
     envVars:
-      # À renseigner MANUELLEMENT après création du backend (voir README)
+      # URL du backend (ex. https://locatysbtp-backend.onrender.com)
       - key: VITE_API_URL
         sync: false
